@@ -3,14 +3,15 @@
 #include <vector>
 #include "signal_analysis.h"
 #include "encoding.h"
+#include "hdmi.h"
 
 using boost::asio::ip::tcp;
 
 class Client {
 public:
     Client(boost::asio::io_context& io, const std::string& host, unsigned short port,
-           Encoder* encoder, SignalAnalyzer* analyzer)
-        : socket_(io), encoder_(encoder), analyzer_(analyzer) {
+           Encoder* encoder, SignalAnalyzer* analyzer, HDMIOutput* hdmi)
+        : socket_(io), encoder_(encoder), analyzer_(analyzer), hdmi_(hdmi) {
         tcp::resolver resolver(io);
         auto endpoints = resolver.resolve(host, std::to_string(port));
         boost::asio::async_connect(socket_, endpoints,
@@ -42,6 +43,7 @@ private:
                 if (!ec) {
                     if (analyzer_) analyzer_->analyze(data_buf_);
                     if (encoder_) data_buf_ = encoder_->encode(data_buf_); // decode if symmetric
+                    if (hdmi_) hdmi_->sendFrame(data_buf_);
                     std::string text(data_buf_.begin(), data_buf_.end());
                     std::cout << "Received: " << text << std::endl;
                 }
@@ -53,13 +55,16 @@ private:
     std::vector<uint8_t> data_buf_;
     Encoder* encoder_;
     SignalAnalyzer* analyzer_;
+    HDMIOutput* hdmi_;
 };
 
 int main() {
     boost::asio::io_context io;
     Encoder* encoder = nullptr;
     SignalAnalyzer* analyzer = nullptr;
-    Client cl(io, "127.0.0.1", 12345, encoder, analyzer);
+    HDMIOutput hdmi;
+    hdmi.connect();
+    Client cl(io, "127.0.0.1", 12345, encoder, analyzer, &hdmi);
     io.run();
     return 0;
 }
