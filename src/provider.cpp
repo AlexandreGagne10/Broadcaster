@@ -3,13 +3,16 @@
 #include <vector>
 #include "signal_analysis.h"
 #include "encoding.h"
+#include "hdmi.h"
 
 using boost::asio::ip::tcp;
 
 class Server {
 public:
-    Server(boost::asio::io_context& io, unsigned short port, Encoder* encoder, SignalAnalyzer* analyzer)
-        : acceptor_(io, tcp::endpoint(tcp::v4(), port)), encoder_(encoder), analyzer_(analyzer) {
+    Server(boost::asio::io_context& io, unsigned short port, Encoder* encoder,
+           SignalAnalyzer* analyzer, HDMIOutput* hdmi)
+        : acceptor_(io, tcp::endpoint(tcp::v4(), port)), encoder_(encoder),
+          analyzer_(analyzer), hdmi_(hdmi) {
         accept();
     }
 
@@ -28,6 +31,7 @@ private:
         std::vector<uint8_t> raw{ 'H', 'e', 'l', 'l', 'o' };
         if (encoder_) raw = encoder_->encode(raw);
         if (analyzer_) analyzer_->analyze(raw);
+        if (hdmi_) hdmi_->sendFrame(raw);
         uint32_t len = static_cast<uint32_t>(raw.size());
         std::vector<uint8_t> buffer(4 + raw.size());
         buffer[0] = (len >> 24) & 0xFF;
@@ -47,13 +51,16 @@ private:
     std::optional<tcp::socket> socket_;
     Encoder* encoder_;
     SignalAnalyzer* analyzer_;
+    HDMIOutput* hdmi_;
 };
 
 int main() {
     boost::asio::io_context io;
     Encoder* encoder = nullptr; // hook for custom encoding
     SignalAnalyzer* analyzer = nullptr; // hook for signal analysis
-    Server srv(io, 12345, encoder, analyzer);
+    HDMIOutput hdmi;
+    hdmi.connect();
+    Server srv(io, 12345, encoder, analyzer, &hdmi);
     io.run();
     return 0;
 }

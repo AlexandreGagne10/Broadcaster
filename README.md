@@ -5,8 +5,8 @@ This project provides a minimal provider/receiver example using Boost.Asio.
 ## Building
 
 ```
-g++ -std=c++17 src/provider.cpp src/signal_analysis.cpp -o provider -lboost_system
-g++ -std=c++17 src/receiver.cpp src/signal_analysis.cpp -o receiver -lboost_system
+g++ -std=c++17 src/provider.cpp src/signal_analysis.cpp src/hdmi.cpp -o provider -lboost_system
+g++ -std=c++17 src/receiver.cpp src/signal_analysis.cpp src/hdmi.cpp -o receiver -lboost_system
 ```
 
 ## Running
